@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SMP Terdekat di Jambi</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: url("/static/img/pattern.png") repeat,
+          linear-gradient(to bottom right, #8e44ad, #59b0b6);
+        background-blend-mode: overlay;
+        color: white;
+        min-height: 100vh;
+        padding: 20px;
+        padding-top: 80px;
+        transition: filter 0.3s ease;
+      }
+
+      .blur {
+        filter: blur(4px);
+      }
+
+      .top-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.1); /* Lebih transparan dan netral */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        z-index: 1000;
+        backdrop-filter: blur(10px) saturate(180%);
+        -webkit-backdrop-filter: blur(10px) saturate(180%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0 0 12px 12px;
+        transition: background 0.3s ease;
+      }
+
+      .logo {
+        width: 50px;
+        cursor: pointer;
+      }
+
+      .btn {
+        background-color: #ffffff;
+        color: #8e44ad;
+        font-weight: bold;
+        padding: 8px 20px;
+        border: none;
+        border-radius: 25px;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+
+      h1 {
+        text-align: center;
+        font-size: 2rem;
+      }
+
+      p {
+        text-align: center;
+        max-width: 700px;
+        margin: 0 auto 30px;
+        line-height: 1.6;
+      }
+
+      .sekolah-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+      }
+
+      .sekolah-item {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 16px;
+        width: 240px;
+        color: #fff;
+        text-align: center;
+        backdrop-filter: blur(4px);
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .sekolah-item:hover {
+        transform: scale(1.05);
+      }
+
+      .sekolah-item img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 12px;
+        margin-bottom: 10px;
+      }
+
+      /* Modal */
+      #modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(3px);
+      }
+
+      #modal.active {
+        display: flex;
+      }
+
+      @keyframes zoomInFlip {
+        from {
+          transform: scale(0.5) rotateX(-90deg);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1) rotateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes zoomOutBounce {
+        0% {
+          transform: scale(1) rotateY(0);
+          opacity: 1;
+        }
+        40% {
+          transform: scale(0.8) rotateY(180deg);
+        }
+        70% {
+          transform: scale(0.5) rotateY(360deg);
+        }
+        90% {
+          transform: scale(0.6) rotateY(540deg);
+        }
+        100% {
+          transform: scale(0) rotateY(720deg);
+          opacity: 0;
+        }
+      }
+
+      .modal-content.animate-out {
+        animation: zoomOutBounce 0.6s ease forwards !important;
+      }
+
+      #modal .modal-content {
+        position: relative;
+        background: white;
+        color: black;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 700px;
+        width: 90%;
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+        animation: zoomInFlip 0.6s ease forwards;
+      }
+
+      #modal .modal-content img {
+        width: 250px;
+        border-radius: 10px;
+        object-fit: cover;
+      }
+
+      #modal .info {
+        flex: 1;
+      }
+
+      #modal .info h2 {
+        margin-top: 0;
+        align-self: auto;
+      }
+
+      #modal .info p {
+        margin: 5px 0;
+        align-self: auto;
+      }
+
+      #modal .info #modal-deskripsi {
+        text-align: justify;
+      }
+
+      #tombol-tutup {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        padding: 8px 16px;
+        background: #8e44ad;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 250px;
+        background-color: #8e44ad;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 999;
+        padding-top: 80px;
+        overflow-y: auto;
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .sidebar a {
+        padding: 12px 24px;
+        text-decoration: none;
+        font-size: 1.1rem;
+        color: white;
+        display: block;
+        transition: background 0.3s;
+      }
+
+      .sidebar a:hover {
+        background-color: #732d91;
+      }
+
+      .sidebar .closebtn {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 30px;
+        color: white;
+        cursor: pointer;
+      }
+      .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 998;
+        display: none;
+        transition: opacity 0.3s ease;
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <a href="javascript:void(0)" class="closebtn" onclick="closeSidebar()"
+        >&times;</a
+      >
+      <a href="/search">Cari Sekolah</a>
+      <a href="/bookmark">Bookmark</a>
+    </div>
+    <div
+      id="sidebarOverlay"
+      class="sidebar-overlay"
+      onclick="toggleSidebar()"
+    ></div>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <img
+        src="/static/img/tutwuri.png"
+        alt="Tut Wuri"
+        class="logo"
+        onclick="toggleSidebar()"
+      />
+      <button class="btn" onclick="window.location.href='/search'">
+        Cari Sekolah
+      </button>
+    </div>
+
+    <!-- Judul dan Deskripsi -->
+    <h1>Temukan SMP Negeri Terdekat di Kota Jambi</h1>
+    <p>
+      Aplikasi ini membantu Anda menemukan sekolah menengah pertama (SMP) negeri
+      yang paling dekat dari lokasi Anda sekarang. Gunakan fitur peta dan
+      pencarian otomatis untuk hasil cepat dan akurat.
+    </p>
+
+    <!-- Daftar Sekolah -->
+    <div class="sekolah-list" id="konten">
+      {% for sekolah in sekolah %}
+      <div
+        class="sekolah-item"
+        onclick="tampilkanDetail(this)"
+        data-nama="{{ sekolah.nama }}"
+        data-alamat="{{ sekolah.alamat }}"
+        data-akreditasi="{{ sekolah.akreditasi }}"
+        data-deskripsi="{{ sekolah.deskripsi }}"
+        data-gambar="{{ sekolah.gambar }}"
+      >
+        <img src="/static/img/{{ sekolah.gambar }}" alt="{{ sekolah.nama }}" />
+        <h3>{{ sekolah.nama }}</h3>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Modal Detail -->
+    <div id="modal">
+      <div class="modal-content" id="modal-box">
+        <img id="modal-gambar" src="" alt="Sekolah" />
+        <div class="info">
+          <h2 id="modal-nama"></h2>
+          <p><strong>Alamat:</strong> <span id="modal-alamat"></span></p>
+          <p>
+            <strong>Akreditasi:</strong> <span id="modal-akreditasi"></span>
+          </p>
+          <p id="modal-deskripsi"></p>
+        </div>
+        <button id="tombol-tutup" onclick="tutupModal()">Tutup</button>
+      </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+      function tampilkanDetail(elem) {
+        const modal = document.getElementById("modal");
+        const box = document.getElementById("modal-box");
+
+        document.getElementById("modal-nama").textContent = elem.dataset.nama;
+        document.getElementById("modal-alamat").textContent =
+          elem.dataset.alamat;
+        document.getElementById("modal-akreditasi").textContent =
+          elem.dataset.akreditasi;
+        document.getElementById("modal-deskripsi").textContent =
+          elem.dataset.deskripsi;
+        document.getElementById("modal-gambar").src =
+          "/static/img/" + elem.dataset.gambar;
+
+        modal.classList.add("active");
+        box.classList.remove("hide");
+        document.getElementById("konten").classList.add("blur");
+      }
+
+      function tutupModal() {
+        const modal = document.getElementById("modal");
+        const box = document.getElementById("modal-box");
+
+        box.classList.add("animate-out");
+        document.getElementById("konten").classList.remove("blur");
+
+        setTimeout(() => {
+          modal.classList.remove("active");
+          box.classList.remove("animate-out");
+        }, 600);
+      }
+
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebarOverlay");
+        const isActive = sidebar.classList.contains("active");
+
+        if (isActive) {
+          sidebar.classList.remove("active");
+          overlay.classList.remove("active");
+        } else {
+          sidebar.classList.add("active");
+          overlay.classList.add("active");
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pencarian SMP Terdekat</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/static/img/icon-512.png" />
+    <meta name="theme-color" content="#8e44ad" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(to bottom, #8e44ad, #59b0b6, #ffffff);
+        color: white;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.1); /* Lebih transparan dan netral */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        z-index: 1000;
+        backdrop-filter: blur(10px) saturate(180%);
+        -webkit-backdrop-filter: blur(10px) saturate(180%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0 0 12px 12px;
+        transition: background 0.3s ease;
+      }
+
+      .navbar.scrolled {
+        background: linear-gradient(
+          to right,
+          rgba(142, 68, 173, 0.6),
+          rgba(89, 176, 182, 0.6)
+        );
+      }
+
+      .navbar img {
+        height: 50px;
+        border-radius: 6px;
+        margin-right: 12px;
+        cursor: pointer;
+      }
+
+      .btn {
+        background-color: #ffffff;
+        color: #8e44ad;
+        font-weight: bold;
+        padding: 8px 20px;
+        border: none;
+        border-radius: 20px;
+        font-size: 1rem;
+        text-decoration: none;
+        margin-right: 10px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 140px auto 40px;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .input-group {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 10px;
+        position: sticky;
+        top: 60px;
+        z-index: 500;
+        backdrop-filter: blur(10px);
+        background: linear-gradient(
+          to right,
+          rgba(142, 68, 173, 0.3),
+          rgba(89, 176, 182, 0.3)
+        );
+        padding: 15px 10px;
+        border-radius: 10px;
+        flex-direction: column;
+      }
+
+      .input-group h2 {
+        margin: 0 0 10px 0;
+        font-size: 1.4rem;
+        color: white;
+      }
+
+      .input-fields {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      input {
+        padding: 8px;
+        border-radius: 8px;
+        border: none;
+        width: 140px;
+        font-size: 0.9rem;
+      }
+
+      button {
+        padding: 10px 18px;
+        background-color: #a65ff0;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 5px;
+      }
+
+      #map {
+        height: 400px;
+        width: 100%;
+        border-radius: 12px;
+        margin-top: 20px;
+        z-index: 1;
+      }
+
+      #hasil {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 15px;
+        max-height: 300px;
+        overflow-y: auto;
+        text-align: left;
+        position: relative;
+        z-index: 10;
+      }
+
+      .hasil-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .hasil-item:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      .hasil-item img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+      }
+
+      .hasil-info {
+        display: flex;
+        flex-direction: column;
+        color: white;
+      }
+
+      .hasil-info b {
+        font-size: 1rem;
+      }
+
+      .hasil-info small {
+        font-size: 0.85rem;
+      }
+
+      .pattern-bg {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 200px;
+        background-image: url("/static/img/pattern.png");
+        background-repeat: repeat;
+        background-size: auto;
+        -webkit-mask-image: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 1),
+          rgba(0, 0, 0, 0)
+        );
+        mask-image: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 100),
+          rgba(0, 0, 0, 0)
+        );
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 250px;
+        background-color: #8e44ad;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 999;
+        padding-top: 80px;
+        overflow-y: auto;
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .sidebar a {
+        padding: 12px 24px;
+        text-decoration: none;
+        font-size: 1.1rem;
+        color: white;
+        display: block;
+        transition: background 0.3s;
+      }
+
+      .sidebar a:hover {
+        background-color: #732d91;
+      }
+
+      .sidebar .closebtn {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 30px;
+        color: white;
+        cursor: pointer;
+      }
+
+      .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 998;
+        display: none;
+        transition: opacity 0.3s ease;
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      @media (max-width: 500px) {
+        .btn {
+          font-size: 0.85rem;
+          padding: 6px 12px;
+        }
+
+        h2 {
+          font-size: 1.2rem;
+        }
+
+        .input-fields {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .hasil-item {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .hasil-item img {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar" id="navbar">
+      <img src="/static/img/tutwuri.png" alt="Logo" onclick="toggleSidebar()" />
+      <a class="btn" href="/">Home</a>
+    </div>
+
+    <div id="sidebar" class="sidebar">
+      <a href="javascript:void(0)" class="closebtn" onclick="closeSidebar()"
+        >&times;</a
+      >
+      <a href="/" class="sidebar-item">Beranda</a>
+      <a href="/bookmark" class="sidebar-item">Bookmark</a>
+      <a href="/about" class="sidebar-item">Tentang</a>
+    </div>
+    <div
+      id="sidebarOverlay"
+      class="sidebar-overlay"
+      onclick="closeSidebar()"
+    ></div>
+
+    <div
+      id="sidebarOverlay"
+      class="sidebar-overlay"
+      onclick="toggleSidebar()"
+    ></div>
+
+    <div class="container">
+      <div class="input-group" id="inputHeader">
+        <h2>Pencarian SMP Negeri Terdekat di Kota Jambi</h2>
+        <div class="input-fields">
+          <input
+            type="number"
+            id="latitude"
+            step="any"
+            placeholder="Latitude"
+          />
+          <input
+            type="number"
+            id="longitude"
+            step="any"
+            placeholder="Longitude"
+          />
+          <input type="number" id="radius" placeholder="Radius (km)" />
+          <button onclick="cariSekolah()">Cari Sekolah</button>
+        </div>
+      </div>
+
+      <div id="map"></div>
+      <div id="hasil"></div>
+    </div>
+
+    <div class="pattern-bg"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/serviceWorker.js")
+            .then((reg) => console.log("✅ Service Worker:", reg.scope))
+            .catch((err) => console.log("❌ Service Worker:", err));
+        });
+      }
+
+      let map, markerGroup, circle;
+
+      window.onload = () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition((pos) => {
+            document.getElementById("latitude").value = pos.coords.latitude;
+            document.getElementById("longitude").value = pos.coords.longitude;
+          });
+        }
+      };
+
+      const iconUser = L.icon({
+        iconUrl: "/static/img/profile.png",
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30],
+      });
+
+      async function cariSekolah() {
+        const lat = parseFloat(document.getElementById("latitude").value);
+        const lon = parseFloat(document.getElementById("longitude").value);
+        const radius = parseFloat(document.getElementById("radius").value);
+
+        if (isNaN(lat) || isNaN(lon) || isNaN(radius)) {
+          alert("Masukkan koordinat dan radius yang valid.");
+          return;
+        }
+
+        const res = await fetch(
+          `/cari_sekolah?lat=${lat}&lon=${lon}&radius=${radius}`
+        );
+        const data = await res.json();
+
+        if (!map) {
+          map = L.map("map").setView([lat, lon], 14);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors",
+          }).addTo(map);
+          markerGroup = L.layerGroup().addTo(map);
+        } else {
+          markerGroup.clearLayers();
+        }
+
+        L.marker([lat, lon], { icon: iconUser })
+          .addTo(markerGroup)
+          .bindPopup("Lokasi Anda")
+          .openPopup();
+
+        if (circle) map.removeLayer(circle);
+        circle = L.circle([lat, lon], {
+          radius: radius * 1000,
+          color: "red",
+          fillColor: "#f03",
+          fillOpacity: 0.25,
+        }).addTo(map);
+
+        const hasilDiv = document.getElementById("hasil");
+        hasilDiv.innerHTML = `<h3>Hasil Pencarian (${data.length} sekolah):</h3>`;
+        if (data.length === 0) {
+          hasilDiv.innerHTML +=
+            "<p>Tidak ada sekolah ditemukan dalam radius tersebut.</p>";
+        }
+
+        data.forEach((sekolah) => {
+          const marker = L.marker([sekolah.lat, sekolah.lon]).addTo(markerGroup)
+            .bindPopup(`
+  <b>${sekolah.nama}</b><br>
+  ${sekolah.alamat}<br>
+  Jarak: ${sekolah.jarak_km} km<br>
+  <img src="/static/img/${
+    sekolah.gambar
+  }" style="width:100px;border-radius:8px;"><br>
+  <a href="https://www.google.com/maps/dir/?api=1&destination=${sekolah.lat},${
+            sekolah.lon
+          }" target="_blank" style="color: blue; text-decoration: underline;">Petunjuk Arah</a><br>
+  <button onclick='tambahBookmark(${JSON.stringify(
+    sekolah
+  )})' style="margin-top:6px;padding:5px 10px;font-size:0.9rem;background:#fff;color:#8e44ad;border-radius:6px;border:none;cursor:pointer;">🔖 Bookmark</button>
+`);
+
+          const item = document.createElement("div");
+          item.className = "hasil-item";
+          item.innerHTML = `
+            <img src="/static/img/${sekolah.gambar}" alt="${sekolah.nama}" />
+            <div class="hasil-info">
+              <b>${sekolah.nama}</b>
+              <small>${sekolah.alamat}</small>
+              <small>Jarak: ${sekolah.jarak_km} km</small>
+            </div>
+          `;
+          item.onclick = () => {
+            map.setView([sekolah.lat, sekolah.lon], 16);
+            marker.openPopup();
+          };
+          hasilDiv.appendChild(item);
+        });
+
+        map.setView([lat, lon], 14);
+      }
+
+      window.addEventListener("scroll", () => {
+        const navbar = document.getElementById("navbar");
+        if (window.scrollY > 30) {
+          navbar.classList.add("scrolled");
+        } else {
+          navbar.classList.remove("scrolled");
+        }
+      });
+
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebarOverlay");
+        const isActive = sidebar.classList.contains("active");
+
+        if (isActive) {
+          sidebar.classList.remove("active");
+          overlay.classList.remove("active");
+        } else {
+          sidebar.classList.add("active");
+          overlay.classList.add("active");
+        }
+      }
+
+      function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("active");
+        document.getElementById("sidebarOverlay").classList.remove("active");
+      }
+
+      function tambahBookmark(sekolah) {
+        let bookmarks = JSON.parse(localStorage.getItem("bookmarks")) || [];
+        const sudahAda = bookmarks.some(
+          (b) => b.nama === sekolah.nama && b.lat === sekolah.lat
+        );
+        if (!sudahAda) {
+          bookmarks.push(sekolah);
+          localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+          alert(`✅ ${sekolah.nama} berhasil ditambahkan ke Bookmark!`);
+        } else {
+          alert(`ℹ️ ${sekolah.nama} sudah ada di Bookmark.`);
+        }
+      }
+    </script>
+  </body>
+</html>
